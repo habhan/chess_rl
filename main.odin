@@ -37,6 +37,7 @@ main :: proc() {
 	PIECE_COLOR2 = rl.Color{30, 30, 30, 255}
 	king_texture := rl.LoadTextureFromImage(rl.LoadImage("./assets/King_White.png"))
 	kt := rl.LoadTexture("./assets/King_White.png")
+	TEXTURE_SCALE = f32(SQUARE_SIDE_LENGTH) / 270.0
 	defer rl.UnloadTexture(king_texture)
 	cam := rl.Camera2D {
 		offset   = rl.Vector2{f32(SCREEN_WIDTH / 2), f32(SCREEN_HEIGHT / 2)},
@@ -61,17 +62,21 @@ main :: proc() {
 			p = board.pieces[i]
 			if (p.col < 8 && p.col >= 0) && (p.row < 8 && p.row >= 0) {
 				if i < 16 {
-					rl.DrawCircle(
-						i32(p.col) * SQUARE_SIDE_LENGTH + SQUARE_SIDE_LENGTH / 2,
-						i32(p.row) * SQUARE_SIDE_LENGTH + SQUARE_SIDE_LENGTH / 2,
-						f32(SQUARE_SIDE_LENGTH) / 4,
-						PIECE_COLOR1,
-					)
-					rl.DrawTexture(
+					rl.DrawTexturePro(
 						kt,
-						i32(p.col) * SQUARE_SIDE_LENGTH + SQUARE_SIDE_LENGTH / 2,
-						i32(p.row) * SQUARE_SIDE_LENGTH,
-						PIECE_COLOR2,
+						rl.Rectangle{0, 0, 256, 256},
+						rl.Rectangle {
+							f32(SQUARE_SIDE_LENGTH + 2),
+							f32(SQUARE_SIDE_LENGTH),
+							f32(SQUARE_SIDE_LENGTH),
+							f32(SQUARE_SIDE_LENGTH),
+						},
+						rl.Vector2 {
+							f32(i32(p.col) * SQUARE_SIDE_LENGTH),
+							f32(i32(p.row) * SQUARE_SIDE_LENGTH),
+						},
+						180,
+						PIECE_COLOR1,
 					)
 				} else {
 					//rl.DrawCircle(
@@ -81,20 +86,21 @@ main :: proc() {
 					//	PIECE_COLOR2,
 					//)
 					// TODO: Need to rewatch the tutorial for how to draw these
+					// https://zylinski.se/posts/gamedev-for-beginners-using-odin-and-raylib-3/
 					rl.DrawTexturePro(
 						kt,
-						rl.Rectangle{0, 0, 45, 45},
+						rl.Rectangle{0, 0, 256, 256},
 						rl.Rectangle {
-							f32(i32(p.col) * SQUARE_SIDE_LENGTH + SQUARE_SIDE_LENGTH / 4),
-							f32(i32(p.row) * SQUARE_SIDE_LENGTH),
-							45.0,
-							45.0,
+							f32(SQUARE_SIDE_LENGTH - 2),
+							f32(SQUARE_SIDE_LENGTH),
+							f32(SQUARE_SIDE_LENGTH),
+							f32(SQUARE_SIDE_LENGTH),
 						},
 						rl.Vector2 {
-							f32(i32(p.col) * SQUARE_SIDE_LENGTH + SQUARE_SIDE_LENGTH / 4),
-							f32(i32(p.row) * SQUARE_SIDE_LENGTH),
+							f32(i32(p.col) * SQUARE_SIDE_LENGTH - SQUARE_SIDE_LENGTH * 6),
+							f32(SQUARE_SIDE_LENGTH - (i32(p.row) * SQUARE_SIDE_LENGTH)),
 						},
-						180,
+						0,
 						PIECE_COLOR2,
 					)
 				}
@@ -106,6 +112,11 @@ main :: proc() {
 		rl.EndMode2D()
 		rl.EndDrawing()
 	}
+	for p in board.squares {
+		if p != nil {
+			fmt.println(p^)
+		}
+	}
 }
 // INFO: Setting up variable for rendering
 SCREEN_HEIGHT: i32
@@ -116,6 +127,7 @@ PIECE_COLOR1: rl.Color
 PIECE_COLOR2: rl.Color
 BOARD_COLOR1: rl.Color
 BOARD_COLOR2: rl.Color
+TEXTURE_SCALE: f32
 
 // INFO: Creating types for Chess
 Board :: struct {
@@ -143,40 +155,6 @@ PieceType :: enum {
 }
 
 // INFO: Creating variables and constants for chess
-StartingPieces :: [32]Piece {
-	Piece{piece_type = PieceType.Rook, col = 0, row = 0, index = 0, alive = true},
-	Piece{PieceType.Knight, 1, 0, 0, true},
-	Piece{PieceType.Bishop, 2, 0, 0, true},
-	Piece{PieceType.Queen, 3, 0, 0, true},
-	Piece{PieceType.King, 4, 0, 0, true},
-	Piece{PieceType.Bishop, 5, 0, 0, true},
-	Piece{PieceType.Knight, 6, 0, 0, true},
-	Piece{PieceType.Rook, 7, 0, 0, true},
-	Piece{piece_type = PieceType.Pawn, col = 0, row = 1, index = 8, alive = true},
-	Piece{PieceType.Pawn, 1, 1, 9, true},
-	Piece{PieceType.Pawn, 2, 1, 10, true},
-	Piece{PieceType.Pawn, 3, 1, 11, true},
-	Piece{PieceType.Pawn, 4, 1, 12, true},
-	Piece{PieceType.Pawn, 5, 1, 13, true},
-	Piece{PieceType.Pawn, 6, 1, 14, true},
-	Piece{PieceType.Pawn, 7, 1, 15, true},
-	Piece{piece_type = PieceType.Rook, col = 0, row = 7, index = 16, alive = true},
-	Piece{PieceType.Knight, 1, 7, 17, true},
-	Piece{PieceType.Bishop, 2, 7, 18, true},
-	Piece{PieceType.Queen, 3, 7, 19, true},
-	Piece{PieceType.King, 4, 7, 20, true},
-	Piece{PieceType.Bishop, 5, 7, 21, true},
-	Piece{PieceType.Knight, 6, 7, 22, true},
-	Piece{PieceType.Rook, 7, 7, 23, true},
-	Piece{piece_type = PieceType.Pawn, col = 0, row = 6, index = 24, alive = true},
-	Piece{PieceType.Pawn, 1, 6, 25, true},
-	Piece{PieceType.Pawn, 2, 6, 26, true},
-	Piece{PieceType.Pawn, 3, 6, 27, true},
-	Piece{PieceType.Pawn, 4, 6, 28, true},
-	Piece{PieceType.Pawn, 5, 6, 29, true},
-	Piece{PieceType.Pawn, 6, 6, 30, true},
-	Piece{PieceType.Pawn, 7, 6, 31, true},
-}
 
 // NOTE: Since we made white the top, we have to reverse which column has what letter assigned to it
 a :: 7
@@ -189,77 +167,85 @@ g :: 1
 h :: 0
 
 newGame :: proc() -> Board {
-	reset_board := Board {
-		pieces = StartingPieces,
-	}
-	reset_board.squares = {
-		&reset_board.pieces[0],
-		&reset_board.pieces[1],
-		&reset_board.pieces[2],
-		&reset_board.pieces[3],
-		&reset_board.pieces[4],
-		&reset_board.pieces[5],
-		&reset_board.pieces[6],
-		&reset_board.pieces[7],
-		&reset_board.pieces[8],
-		&reset_board.pieces[9],
-		&reset_board.pieces[10],
-		&reset_board.pieces[11],
-		&reset_board.pieces[12],
-		&reset_board.pieces[13],
-		&reset_board.pieces[14],
-		&reset_board.pieces[15],
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		&reset_board.pieces[24],
-		&reset_board.pieces[25],
-		&reset_board.pieces[26],
-		&reset_board.pieces[27],
-		&reset_board.pieces[28],
-		&reset_board.pieces[29],
-		&reset_board.pieces[30],
-		&reset_board.pieces[31],
-		&reset_board.pieces[16],
-		&reset_board.pieces[17],
-		&reset_board.pieces[18],
-		&reset_board.pieces[19],
-		&reset_board.pieces[20],
-		&reset_board.pieces[21],
-		&reset_board.pieces[22],
-		&reset_board.pieces[23],
-	}
+	reset_board: Board
+	resetPieces(&reset_board)
+	resetSquares(&reset_board)
 	return reset_board
+}
 
+
+resetPieces :: proc(board: ^Board) {
+	board.pieces = {
+		Piece{piece_type = PieceType.Rook, col = 0, row = 0, index = 0, alive = true},
+		Piece{PieceType.Knight, 1, 0, 0, true},
+		Piece{PieceType.Bishop, 2, 0, 0, true},
+		Piece{PieceType.Queen, 3, 0, 0, true},
+		Piece{PieceType.King, 4, 0, 0, true},
+		Piece{PieceType.Bishop, 5, 0, 0, true},
+		Piece{PieceType.Knight, 6, 0, 0, true},
+		Piece{PieceType.Rook, 7, 0, 0, true},
+		Piece{piece_type = PieceType.Pawn, col = 0, row = 1, index = 8, alive = true},
+		Piece{PieceType.Pawn, 1, 1, 9, true},
+		Piece{PieceType.Pawn, 2, 1, 10, true},
+		Piece{PieceType.Pawn, 3, 1, 11, true},
+		Piece{PieceType.Pawn, 4, 1, 12, true},
+		Piece{PieceType.Pawn, 5, 1, 13, true},
+		Piece{PieceType.Pawn, 6, 1, 14, true},
+		Piece{PieceType.Pawn, 7, 1, 15, true},
+		Piece{piece_type = PieceType.Rook, col = 0, row = 7, index = 16, alive = true},
+		Piece{PieceType.Knight, 1, 7, 17, true},
+		Piece{PieceType.Bishop, 2, 7, 18, true},
+		Piece{PieceType.Queen, 3, 7, 19, true},
+		Piece{PieceType.King, 4, 7, 20, true},
+		Piece{PieceType.Bishop, 5, 7, 21, true},
+		Piece{PieceType.Knight, 6, 7, 22, true},
+		Piece{PieceType.Rook, 7, 7, 23, true},
+		Piece{piece_type = PieceType.Pawn, col = 0, row = 6, index = 24, alive = true},
+		Piece{PieceType.Pawn, 1, 6, 25, true},
+		Piece{PieceType.Pawn, 2, 6, 26, true},
+		Piece{PieceType.Pawn, 3, 6, 27, true},
+		Piece{PieceType.Pawn, 4, 6, 28, true},
+		Piece{PieceType.Pawn, 5, 6, 29, true},
+		Piece{PieceType.Pawn, 6, 6, 30, true},
+		Piece{PieceType.Pawn, 7, 6, 31, true},
+	}
+
+}
+
+// BUG: THIS DOES NOT WORK
+resetSquares :: proc(board: ^Board) {
+	board.squares[0] = &board.pieces[0]
+	board.squares[1] = &board.pieces[1]
+	board.squares[2] = &board.pieces[2]
+	board.squares[3] = &board.pieces[3]
+	board.squares[4] = &board.pieces[4]
+	board.squares[5] = &board.pieces[5]
+	board.squares[6] = &board.pieces[6]
+	board.squares[7] = &board.pieces[7]
+	board.squares[8] = &board.pieces[8]
+	board.squares[9] = &board.pieces[9]
+	board.squares[10] = &board.pieces[10]
+	board.squares[11] = &board.pieces[11]
+	board.squares[12] = &board.pieces[12]
+	board.squares[13] = &board.pieces[13]
+	board.squares[14] = &board.pieces[14]
+	board.squares[15] = &board.pieces[15]
+	board.squares[48] = &board.pieces[24]
+	board.squares[49] = &board.pieces[25]
+	board.squares[50] = &board.pieces[26]
+	board.squares[51] = &board.pieces[27]
+	board.squares[52] = &board.pieces[28]
+	board.squares[53] = &board.pieces[29]
+	board.squares[54] = &board.pieces[30]
+	board.squares[55] = &board.pieces[31]
+	board.squares[56] = &board.pieces[16]
+	board.squares[57] = &board.pieces[17]
+	board.squares[58] = &board.pieces[18]
+	board.squares[59] = &board.pieces[19]
+	board.squares[60] = &board.pieces[20]
+	board.squares[61] = &board.pieces[21]
+	board.squares[62] = &board.pieces[22]
+	board.squares[63] = &board.pieces[23]
 }
 
 drawBoard :: proc(board_color1, board_color2: rl.Color) {
@@ -343,8 +329,10 @@ killPiece :: proc(board: ^Board, piece: u8) {
 }
 
 getSquareIndex :: proc(square: [2]u8) -> u8 {
+	answer := ((square.y - 1) * 8) + square.x
+	fmt.println(answer)
 
-	return ((square.y - 1) * 8) + square.x
+	return answer
 }
 
 getPiece :: proc(board: ^Board, square: u8) -> u8 {
@@ -352,7 +340,7 @@ getPiece :: proc(board: ^Board, square: u8) -> u8 {
 		return 255
 	}
 	if board.squares[square] == nil {
-		return 255
+		return 254
 	}
 	return board.squares[square].index
 }
