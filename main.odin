@@ -33,12 +33,16 @@ main :: proc() {
 	SQUARE_SIDE_LENGTH = min(SCREEN_HEIGHT, SCREEN_WIDTH) / 8
 	board_color1 := rl.LIGHTGRAY
 	board_color2 := rl.DARKGRAY
-	PIECE_COLOR1 = rl.WHITE
+	PIECE_COLOR1 = rl.RED
 	PIECE_COLOR2 = rl.Color{30, 30, 30, 255}
-	king_texture := rl.LoadTextureFromImage(rl.LoadImage("./assets/King_White.png"))
-	kt := rl.LoadTexture("./assets/King_White.png")
-	TEXTURE_SCALE = f32(SQUARE_SIDE_LENGTH) / 270.0
-	defer rl.UnloadTexture(king_texture)
+	textures: [6]rl.Texture
+	for v, i in PieceTypeTexture {
+		textures[i] = rl.LoadTextureFromImage(rl.LoadImage(v))
+	}
+	defer {for _, i in textures {
+			rl.UnloadTexture(textures[i])
+		}
+	}
 	cam := rl.Camera2D {
 		offset   = rl.Vector2{f32(SCREEN_WIDTH / 2), f32(SCREEN_HEIGHT / 2)},
 		target   = rl.Vector2{f32(SQUARE_SIDE_LENGTH * 4), f32(SQUARE_SIDE_LENGTH * 4)},
@@ -50,9 +54,8 @@ main :: proc() {
 	// NOTE: Chess setup stuff
 	board := newGame()
 	p := Piece{}
-	//movePiece(&board, 12, {d, 4})
-	fmt.printf("\nTHE PIECE IS :%v\n", getPiece(&board, getSquareIndex({d, 6})))
-
+	movePiece(&board, getPiece(&board, getSquareIndex({d, 2})), getSquareIndex({d, 4}))
+	movePiece(&board, getPiece(&board, getSquareIndex({d, 7})), getSquareIndex({d, 5}))
 	// NOTE: Start of rendering
 	for !rl.WindowShouldClose() {
 		rl.BeginDrawing()
@@ -62,22 +65,43 @@ main :: proc() {
 			p = board.pieces[i]
 			if (p.col < 8 && p.col >= 0) && (p.row < 8 && p.row >= 0) {
 				if i < 16 {
-					rl.DrawTexturePro(
-						kt,
-						rl.Rectangle{0, 0, 256, 256},
-						rl.Rectangle {
-							f32(SQUARE_SIDE_LENGTH + 2),
-							f32(SQUARE_SIDE_LENGTH),
-							f32(SQUARE_SIDE_LENGTH),
-							f32(SQUARE_SIDE_LENGTH),
-						},
-						rl.Vector2 {
-							f32(i32(p.col) * SQUARE_SIDE_LENGTH),
-							f32(i32(p.row) * SQUARE_SIDE_LENGTH),
-						},
-						180,
-						PIECE_COLOR1,
-					)
+					if cam.rotation == 180 {
+						// NOTE: THIS WORKS WHILE CAMERA IS FLIPPED, EVERYTHING IS UPPSIDE DOWN IF IT ISN'T
+						rl.DrawTexturePro(
+							textures[p.piece_type],
+							rl.Rectangle{0, 0, 256, 256},
+							rl.Rectangle {
+								f32(SQUARE_SIDE_LENGTH),
+								f32(SQUARE_SIDE_LENGTH),
+								f32(SQUARE_SIDE_LENGTH),
+								f32(SQUARE_SIDE_LENGTH),
+							},
+							rl.Vector2 {
+								f32(i32(p.col) * SQUARE_SIDE_LENGTH),
+								f32(i32(p.row) * SQUARE_SIDE_LENGTH),
+							},
+							180,
+							PIECE_COLOR1,
+						)
+					} else {
+
+						rl.DrawTexturePro(
+							textures[p.piece_type],
+							rl.Rectangle{0, 0, 256, 256},
+							rl.Rectangle {
+								f32(SQUARE_SIDE_LENGTH),
+								f32(SQUARE_SIDE_LENGTH),
+								f32(SQUARE_SIDE_LENGTH),
+								f32(SQUARE_SIDE_LENGTH),
+							},
+							rl.Vector2 {
+								f32(SQUARE_SIDE_LENGTH - i32(p.col) * SQUARE_SIDE_LENGTH),
+								f32(SQUARE_SIDE_LENGTH - (i32(p.row) * SQUARE_SIDE_LENGTH)),
+							},
+							0,
+							PIECE_COLOR1,
+						)
+					}
 				} else {
 					//rl.DrawCircle(
 					//	i32(p.col) * SQUARE_SIDE_LENGTH + SQUARE_SIDE_LENGTH / 2,
@@ -87,22 +111,42 @@ main :: proc() {
 					//)
 					// TODO: Need to rewatch the tutorial for how to draw these
 					// https://zylinski.se/posts/gamedev-for-beginners-using-odin-and-raylib-3/
-					rl.DrawTexturePro(
-						kt,
-						rl.Rectangle{0, 0, 256, 256},
-						rl.Rectangle {
-							f32(SQUARE_SIDE_LENGTH - 2),
-							f32(SQUARE_SIDE_LENGTH),
-							f32(SQUARE_SIDE_LENGTH),
-							f32(SQUARE_SIDE_LENGTH),
-						},
-						rl.Vector2 {
-							f32(i32(p.col) * SQUARE_SIDE_LENGTH - SQUARE_SIDE_LENGTH * 6),
-							f32(SQUARE_SIDE_LENGTH - (i32(p.row) * SQUARE_SIDE_LENGTH)),
-						},
-						0,
-						PIECE_COLOR2,
-					)
+					if cam.rotation == 180 {
+						rl.DrawTexturePro(
+							textures[p.piece_type],
+							rl.Rectangle{0, 0, 256, 256},
+							rl.Rectangle {
+								f32(SQUARE_SIDE_LENGTH),
+								f32(SQUARE_SIDE_LENGTH),
+								f32(SQUARE_SIDE_LENGTH),
+								f32(SQUARE_SIDE_LENGTH),
+							},
+							rl.Vector2 {
+								f32(i32(p.col) * SQUARE_SIDE_LENGTH),
+								f32((i32(p.row) * SQUARE_SIDE_LENGTH)),
+							},
+							180,
+							PIECE_COLOR2,
+						)
+					} else {
+
+						rl.DrawTexturePro(
+							textures[p.piece_type],
+							rl.Rectangle{0, 0, 256, 256},
+							rl.Rectangle {
+								f32(SQUARE_SIDE_LENGTH),
+								f32(SQUARE_SIDE_LENGTH),
+								f32(SQUARE_SIDE_LENGTH),
+								f32(SQUARE_SIDE_LENGTH),
+							},
+							rl.Vector2 {
+								f32(SQUARE_SIDE_LENGTH - i32(p.col) * SQUARE_SIDE_LENGTH),
+								f32(SQUARE_SIDE_LENGTH - (i32(p.row) * SQUARE_SIDE_LENGTH)),
+							},
+							0,
+							PIECE_COLOR2,
+						)
+					}
 				}
 			}
 		}
@@ -112,10 +156,16 @@ main :: proc() {
 		rl.EndMode2D()
 		rl.EndDrawing()
 	}
-	for p in board.squares {
-		if p != nil {
-			fmt.println(p^)
+	fmt.printf("\tH\tG\tF\tE\tD\tC\tB\tA\n")
+	for p, i in board.squares {
+		if i % 8 == 0 {fmt.printf("\n")}
+		if p != 255 {
+			fmt.printf("\t%v", p)
+		} else {
+			fmt.printf("\t*")
 		}
+		if i == 63 {fmt.printf("\n")}
+
 	}
 }
 // INFO: Setting up variable for rendering
@@ -127,8 +177,7 @@ PIECE_COLOR1: rl.Color
 PIECE_COLOR2: rl.Color
 BOARD_COLOR1: rl.Color
 BOARD_COLOR2: rl.Color
-TEXTURE_SCALE: f32
-
+TEXTURE_SIDE_LENGTH :: 270
 // INFO: Creating types for Chess
 Board :: struct {
 	// 0-15 White , 16-31 Black
@@ -137,7 +186,8 @@ Board :: struct {
 	// rook,knigt,bishop,queen,king,bishop,knight,rook
 	// pawn,pawn,pawn,pawn,pawn,pawn,pawn,pawn
 	pieces:  [32]Piece,
-	squares: [64]^Piece,
+	// Contains a Piece_Index or 255
+	squares: [64]u8,
 }
 
 Piece :: struct {
@@ -154,6 +204,14 @@ PieceType :: enum {
 	Queen,
 }
 
+PieceTypeTexture :: [PieceType]cstring {
+	.King   = "./assets/King_White.png",
+	.Pawn   = "./assets/Pawn_White.png",
+	.Knight = "./assets/Knight_White.png",
+	.Bishop = "./assets/Bishop_White.png",
+	.Rook   = "./assets/Rook_White.png",
+	.Queen  = "./assets/Queen_White.png",
+}
 // INFO: Creating variables and constants for chess
 
 // NOTE: Since we made white the top, we have to reverse which column has what letter assigned to it
@@ -177,13 +235,13 @@ newGame :: proc() -> Board {
 resetPieces :: proc(board: ^Board) {
 	board.pieces = {
 		Piece{piece_type = PieceType.Rook, col = 0, row = 0, index = 0, alive = true},
-		Piece{PieceType.Knight, 1, 0, 0, true},
-		Piece{PieceType.Bishop, 2, 0, 0, true},
-		Piece{PieceType.Queen, 3, 0, 0, true},
-		Piece{PieceType.King, 4, 0, 0, true},
-		Piece{PieceType.Bishop, 5, 0, 0, true},
-		Piece{PieceType.Knight, 6, 0, 0, true},
-		Piece{PieceType.Rook, 7, 0, 0, true},
+		Piece{PieceType.Knight, 1, 0, 1, true},
+		Piece{PieceType.Bishop, 2, 0, 2, true},
+		Piece{PieceType.Queen, 3, 0, 3, true},
+		Piece{PieceType.King, 4, 0, 4, true},
+		Piece{PieceType.Bishop, 5, 0, 5, true},
+		Piece{PieceType.Knight, 6, 0, 6, true},
+		Piece{PieceType.Rook, 7, 0, 7, true},
 		Piece{piece_type = PieceType.Pawn, col = 0, row = 1, index = 8, alive = true},
 		Piece{PieceType.Pawn, 1, 1, 9, true},
 		Piece{PieceType.Pawn, 2, 1, 10, true},
@@ -214,38 +272,41 @@ resetPieces :: proc(board: ^Board) {
 
 // BUG: THIS DOES NOT WORK
 resetSquares :: proc(board: ^Board) {
-	board.squares[0] = &board.pieces[0]
-	board.squares[1] = &board.pieces[1]
-	board.squares[2] = &board.pieces[2]
-	board.squares[3] = &board.pieces[3]
-	board.squares[4] = &board.pieces[4]
-	board.squares[5] = &board.pieces[5]
-	board.squares[6] = &board.pieces[6]
-	board.squares[7] = &board.pieces[7]
-	board.squares[8] = &board.pieces[8]
-	board.squares[9] = &board.pieces[9]
-	board.squares[10] = &board.pieces[10]
-	board.squares[11] = &board.pieces[11]
-	board.squares[12] = &board.pieces[12]
-	board.squares[13] = &board.pieces[13]
-	board.squares[14] = &board.pieces[14]
-	board.squares[15] = &board.pieces[15]
-	board.squares[48] = &board.pieces[24]
-	board.squares[49] = &board.pieces[25]
-	board.squares[50] = &board.pieces[26]
-	board.squares[51] = &board.pieces[27]
-	board.squares[52] = &board.pieces[28]
-	board.squares[53] = &board.pieces[29]
-	board.squares[54] = &board.pieces[30]
-	board.squares[55] = &board.pieces[31]
-	board.squares[56] = &board.pieces[16]
-	board.squares[57] = &board.pieces[17]
-	board.squares[58] = &board.pieces[18]
-	board.squares[59] = &board.pieces[19]
-	board.squares[60] = &board.pieces[20]
-	board.squares[61] = &board.pieces[21]
-	board.squares[62] = &board.pieces[22]
-	board.squares[63] = &board.pieces[23]
+	for _, i in board.squares {
+		board.squares[i] = 255
+	}
+	board.squares[0] = board.pieces[0].index
+	board.squares[1] = board.pieces[1].index
+	board.squares[2] = board.pieces[2].index
+	board.squares[3] = board.pieces[3].index
+	board.squares[4] = board.pieces[4].index
+	board.squares[5] = board.pieces[5].index
+	board.squares[6] = board.pieces[6].index
+	board.squares[7] = board.pieces[7].index
+	board.squares[8] = board.pieces[8].index
+	board.squares[9] = board.pieces[9].index
+	board.squares[10] = board.pieces[10].index
+	board.squares[11] = board.pieces[11].index
+	board.squares[12] = board.pieces[12].index
+	board.squares[13] = board.pieces[13].index
+	board.squares[14] = board.pieces[14].index
+	board.squares[15] = board.pieces[15].index
+	board.squares[48] = board.pieces[24].index
+	board.squares[49] = board.pieces[25].index
+	board.squares[50] = board.pieces[26].index
+	board.squares[51] = board.pieces[27].index
+	board.squares[52] = board.pieces[28].index
+	board.squares[53] = board.pieces[29].index
+	board.squares[54] = board.pieces[30].index
+	board.squares[55] = board.pieces[31].index
+	board.squares[56] = board.pieces[16].index
+	board.squares[57] = board.pieces[17].index
+	board.squares[58] = board.pieces[18].index
+	board.squares[59] = board.pieces[19].index
+	board.squares[60] = board.pieces[20].index
+	board.squares[61] = board.pieces[21].index
+	board.squares[62] = board.pieces[22].index
+	board.squares[63] = board.pieces[23].index
 }
 
 drawBoard :: proc(board_color1, board_color2: rl.Color) {
@@ -307,18 +368,18 @@ clickedSquare :: proc(cam: ^rl.Camera2D) -> u8 {
 // The piece passed is just the index of the piece in question
 movePiece :: proc(board: ^Board, piece: u8, toSquare: u8) {
 
-	if board.squares[toSquare] == nil {
-		board.squares[board.pieces[piece].row * 8 + board.pieces[piece].col] = nil
+	if board.squares[toSquare] == 255 {
+		board.squares[board.pieces[piece].row * 8 + board.pieces[piece].col] = 255
 		board.pieces[piece].col = toSquare % 8
 		board.pieces[piece].row = toSquare / 8
-		board.squares[toSquare] = &board.pieces[piece]
+		board.squares[toSquare] = board.pieces[piece].index
 		return
 	} else {
-		killPiece(board, board.squares[toSquare].index)
-		board.squares[board.pieces[piece].row * 8 + board.pieces[piece].col] = nil
+		killPiece(board, board.pieces[board.squares[toSquare]].index)
+		board.squares[board.pieces[piece].row * 8 + board.pieces[piece].col] = 255
 		board.pieces[piece].col = toSquare % 8
 		board.pieces[piece].row = toSquare / 8
-		board.squares[toSquare] = &board.pieces[piece]
+		board.squares[toSquare] = board.pieces[piece].index
 		return
 	}
 
@@ -330,7 +391,6 @@ killPiece :: proc(board: ^Board, piece: u8) {
 
 getSquareIndex :: proc(square: [2]u8) -> u8 {
 	answer := ((square.y - 1) * 8) + square.x
-	fmt.println(answer)
 
 	return answer
 }
@@ -339,8 +399,8 @@ getPiece :: proc(board: ^Board, square: u8) -> u8 {
 	if square > 63 {
 		return 255
 	}
-	if board.squares[square] == nil {
+	if board.squares[square] == 255 {
 		return 254
 	}
-	return board.squares[square].index
+	return board.pieces[board.squares[square]].index
 }
