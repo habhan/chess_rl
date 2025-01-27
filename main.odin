@@ -3,6 +3,7 @@ package chess
 import "core:fmt"
 import "core:mem"
 import "core:os"
+import "core:slice"
 import rl "vendor:raylib"
 
 
@@ -49,13 +50,14 @@ main :: proc() {
 		rotation = 0.0,
 		zoom     = 1.0,
 	}
-	flipCamera(&cam)
+	//flipCamera(&cam)
 
 	// NOTE: Chess setup stuff
 	board := newGame()
 	p := Piece{}
-	movePiece(&board, getPiece(&board, getSquareIndex({d, 2})), getSquareIndex({d, 4}))
-	movePiece(&board, getPiece(&board, getSquareIndex({d, 7})), getSquareIndex({d, 5}))
+	movePiece(&board, getPiece(&board, getSquareIndex({d, 1})), getSquareIndex({d, 3}))
+	movePiece(&board, getPiece(&board, getSquareIndex({d, 6})), getSquareIndex({d, 4}))
+	movePiece(&board, getPiece(&board, getSquareIndex({e, 0})), getSquareIndex({e, 3}))
 	// NOTE: Start of rendering
 	for !rl.WindowShouldClose() {
 		rl.BeginDrawing()
@@ -69,7 +71,7 @@ main :: proc() {
 						// NOTE: THIS WORKS WHILE CAMERA IS FLIPPED, EVERYTHING IS UPPSIDE DOWN IF IT ISN'T
 						rl.DrawTexturePro(
 							textures[p.piece_type],
-							rl.Rectangle{0, 0, 256, 256},
+							rl.Rectangle{0, 0, 270, 270},
 							rl.Rectangle {
 								f32(SQUARE_SIDE_LENGTH),
 								f32(SQUARE_SIDE_LENGTH),
@@ -87,7 +89,7 @@ main :: proc() {
 
 						rl.DrawTexturePro(
 							textures[p.piece_type],
-							rl.Rectangle{0, 0, 256, 256},
+							rl.Rectangle{0, 0, 270, 270},
 							rl.Rectangle {
 								f32(SQUARE_SIDE_LENGTH),
 								f32(SQUARE_SIDE_LENGTH),
@@ -160,12 +162,16 @@ main :: proc() {
 	for p, i in board.squares {
 		if i % 8 == 0 {fmt.printf("\n")}
 		if p != 255 {
-			fmt.printf("\t%v", p)
+			fmt.printf("\t%v", board.pieces[p].piece_type)
 		} else {
 			fmt.printf("\t*")
 		}
 		if i == 63 {fmt.printf("\n")}
 
+	}
+	for p in availableMoves(&board, getPiece(&board, getSquareIndex({e, 3}))) {
+		fmt.printf("Col: %v ", p % 8)
+		fmt.printf("Row: %v\n", p / 8)
 	}
 }
 // INFO: Setting up variable for rendering
@@ -237,8 +243,8 @@ resetPieces :: proc(board: ^Board) {
 		Piece{piece_type = PieceType.Rook, col = 0, row = 0, index = 0, alive = true},
 		Piece{PieceType.Knight, 1, 0, 1, true},
 		Piece{PieceType.Bishop, 2, 0, 2, true},
-		Piece{PieceType.Queen, 3, 0, 3, true},
-		Piece{PieceType.King, 4, 0, 4, true},
+		Piece{PieceType.King, 3, 0, 3, true},
+		Piece{PieceType.Queen, 4, 0, 4, true},
 		Piece{PieceType.Bishop, 5, 0, 5, true},
 		Piece{PieceType.Knight, 6, 0, 6, true},
 		Piece{PieceType.Rook, 7, 0, 7, true},
@@ -253,8 +259,8 @@ resetPieces :: proc(board: ^Board) {
 		Piece{piece_type = PieceType.Rook, col = 0, row = 7, index = 16, alive = true},
 		Piece{PieceType.Knight, 1, 7, 17, true},
 		Piece{PieceType.Bishop, 2, 7, 18, true},
-		Piece{PieceType.Queen, 3, 7, 19, true},
-		Piece{PieceType.King, 4, 7, 20, true},
+		Piece{PieceType.King, 3, 7, 19, true},
+		Piece{PieceType.Queen, 4, 7, 20, true},
 		Piece{PieceType.Bishop, 5, 7, 21, true},
 		Piece{PieceType.Knight, 6, 7, 22, true},
 		Piece{PieceType.Rook, 7, 7, 23, true},
@@ -390,9 +396,8 @@ killPiece :: proc(board: ^Board, piece: u8) {
 }
 
 getSquareIndex :: proc(square: [2]u8) -> u8 {
-	answer := ((square.y - 1) * 8) + square.x
 
-	return answer
+	return (square.y * 8) + square.x
 }
 
 getPiece :: proc(board: ^Board, square: u8) -> u8 {
@@ -403,4 +408,51 @@ getPiece :: proc(board: ^Board, square: u8) -> u8 {
 		return 254
 	}
 	return board.pieces[board.squares[square]].index
+}
+
+availableMoves :: proc(board: ^Board, piece: u8) -> []u8 {
+	validSquares: [dynamic]u8
+	if piece > 32 {return {}}
+	p := board.pieces[piece]
+	switch p.piece_type {
+	case .King:
+		// up left
+		if p.col > 0 && p.row > 0 {
+			append(&validSquares, getSquareIndex({p.col - 1, p.row - 1}))
+		}
+		// up
+		if p.row > 0 {
+			append(&validSquares, getSquareIndex({p.col, p.row - 1}))
+		}
+		// right up
+		if p.col < 7 && p.row > 0 {
+			append(&validSquares, getSquareIndex({p.col + 1, p.row - 1}))
+		}
+		// left
+		if p.col > 0 {
+			append(&validSquares, getSquareIndex({p.col - 1, p.row}))
+		}
+		// right
+		if p.col < 7 {
+			append(&validSquares, getSquareIndex({p.col + 1, p.row}))
+		}
+		// left down
+		if p.col > 0 && p.row < 7 {
+			append(&validSquares, getSquareIndex({p.col - 1, p.row + 1}))
+		}
+		// down
+		if p.row < 7 {
+			append(&validSquares, getSquareIndex({p.col, p.row + 1}))
+		}
+		// down right
+		if p.col < 7 && p.row < 7 {
+			append(&validSquares, getSquareIndex({p.col + 1, p.row + 1}))
+		}
+	case .Pawn:
+	case .Knight:
+	case .Bishop:
+	case .Rook:
+	case .Queen:
+	}
+	return validSquares[:]
 }
