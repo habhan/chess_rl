@@ -4,7 +4,6 @@ import "core:fmt"
 import "core:mem"
 import "core:os"
 import "core:slice"
-import rl "vendor:raylib"
 
 
 main :: proc() {
@@ -23,142 +22,14 @@ main :: proc() {
 		mem.tracking_allocator_destroy(&track)
 	}
 
-	// NOTE: RL Setup stuff
-	rl.InitWindow(1280, 720, "Chess")
-	defer rl.CloseWindow()
-	rl.SetTargetFPS(60.0)
-
-	// NOTE: Rendering Setup stuff
-	SCREEN_WIDTH = rl.GetScreenWidth()
-	SCREEN_HEIGHT = rl.GetScreenHeight()
-	SQUARE_SIDE_LENGTH = min(SCREEN_HEIGHT, SCREEN_WIDTH) / 8
-	board_color1 := rl.LIGHTGRAY
-	board_color2 := rl.DARKGRAY
-	PIECE_COLOR1 = rl.RED
-	PIECE_COLOR2 = rl.Color{30, 30, 30, 255}
-	textures: [6]rl.Texture
-	for v, i in PieceTypeTexture {
-		textures[i] = rl.LoadTextureFromImage(rl.LoadImage(v))
-	}
-	defer {for _, i in textures {
-			rl.UnloadTexture(textures[i])
-		}
-	}
-	cam := rl.Camera2D {
-		offset   = rl.Vector2{f32(SCREEN_WIDTH / 2), f32(SCREEN_HEIGHT / 2)},
-		target   = rl.Vector2{f32(SQUARE_SIDE_LENGTH * 4), f32(SQUARE_SIDE_LENGTH * 4)},
-		rotation = 0.0,
-		zoom     = 1.0,
-	}
-	//flipCamera(&cam)
-
 	// NOTE: Chess setup stuff
 	board := newGame()
-	p := Piece{}
 	movePiece(&board, getPiece(&board, getSquareIndex({d, 1})), getSquareIndex({d, 3}))
 	movePiece(&board, getPiece(&board, getSquareIndex({d, 6})), getSquareIndex({d, 4}))
 	movePiece(&board, getPiece(&board, getSquareIndex({e, 0})), getSquareIndex({e, 3}))
 	// NOTE: Start of rendering
-	for !rl.WindowShouldClose() {
-		rl.BeginDrawing()
-		rl.BeginMode2D(cam)
-		drawBoard(board_color1, board_color2)
-		for _, i in board.pieces {
-			p = board.pieces[i]
-			if (p.col < 8 && p.col >= 0) && (p.row < 8 && p.row >= 0) {
-				if i < 16 {
-					if cam.rotation == 180 {
-						// NOTE: THIS WORKS WHILE CAMERA IS FLIPPED, EVERYTHING IS UPPSIDE DOWN IF IT ISN'T
-						rl.DrawTexturePro(
-							textures[p.piece_type],
-							rl.Rectangle{0, 0, 270, 270},
-							rl.Rectangle {
-								f32(SQUARE_SIDE_LENGTH),
-								f32(SQUARE_SIDE_LENGTH),
-								f32(SQUARE_SIDE_LENGTH),
-								f32(SQUARE_SIDE_LENGTH),
-							},
-							rl.Vector2 {
-								f32(i32(p.col) * SQUARE_SIDE_LENGTH),
-								f32(i32(p.row) * SQUARE_SIDE_LENGTH),
-							},
-							180,
-							PIECE_COLOR1,
-						)
-					} else {
-
-						rl.DrawTexturePro(
-							textures[p.piece_type],
-							rl.Rectangle{0, 0, 270, 270},
-							rl.Rectangle {
-								f32(SQUARE_SIDE_LENGTH),
-								f32(SQUARE_SIDE_LENGTH),
-								f32(SQUARE_SIDE_LENGTH),
-								f32(SQUARE_SIDE_LENGTH),
-							},
-							rl.Vector2 {
-								f32(SQUARE_SIDE_LENGTH - i32(p.col) * SQUARE_SIDE_LENGTH),
-								f32(SQUARE_SIDE_LENGTH - (i32(p.row) * SQUARE_SIDE_LENGTH)),
-							},
-							0,
-							PIECE_COLOR1,
-						)
-					}
-				} else {
-					//rl.DrawCircle(
-					//	i32(p.col) * SQUARE_SIDE_LENGTH + SQUARE_SIDE_LENGTH / 2,
-					//	i32(p.row) * SQUARE_SIDE_LENGTH + SQUARE_SIDE_LENGTH / 2,
-					//	f32(SQUARE_SIDE_LENGTH) / 4,
-					//	PIECE_COLOR2,
-					//)
-					// TODO: Need to rewatch the tutorial for how to draw these
-					// https://zylinski.se/posts/gamedev-for-beginners-using-odin-and-raylib-3/
-					if cam.rotation == 180 {
-						rl.DrawTexturePro(
-							textures[p.piece_type],
-							rl.Rectangle{0, 0, 256, 256},
-							rl.Rectangle {
-								f32(SQUARE_SIDE_LENGTH),
-								f32(SQUARE_SIDE_LENGTH),
-								f32(SQUARE_SIDE_LENGTH),
-								f32(SQUARE_SIDE_LENGTH),
-							},
-							rl.Vector2 {
-								f32(i32(p.col) * SQUARE_SIDE_LENGTH),
-								f32((i32(p.row) * SQUARE_SIDE_LENGTH)),
-							},
-							180,
-							PIECE_COLOR2,
-						)
-					} else {
-
-						rl.DrawTexturePro(
-							textures[p.piece_type],
-							rl.Rectangle{0, 0, 256, 256},
-							rl.Rectangle {
-								f32(SQUARE_SIDE_LENGTH),
-								f32(SQUARE_SIDE_LENGTH),
-								f32(SQUARE_SIDE_LENGTH),
-								f32(SQUARE_SIDE_LENGTH),
-							},
-							rl.Vector2 {
-								f32(SQUARE_SIDE_LENGTH - i32(p.col) * SQUARE_SIDE_LENGTH),
-								f32(SQUARE_SIDE_LENGTH - (i32(p.row) * SQUARE_SIDE_LENGTH)),
-							},
-							0,
-							PIECE_COLOR2,
-						)
-					}
-				}
-			}
-		}
-		if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
-			fmt.println(getPiece(&board, clickedSquare(&cam)))
-		}
-		rl.EndMode2D()
-		rl.EndDrawing()
-	}
 	fmt.printf("\tH\tG\tF\tE\tD\tC\tB\tA\n")
+	render(&board)
 	for p, i in board.squares {
 		if i % 8 == 0 {fmt.printf("\n")}
 		if p != 255 {
@@ -169,21 +40,28 @@ main :: proc() {
 		if i == 63 {fmt.printf("\n")}
 
 	}
+	fmt.println()
+	fmt.println("White KING:")
 	for p in availableMoves(&board, getPiece(&board, getSquareIndex({e, 3}))) {
 		fmt.printf("Col: %v ", p % 8)
 		fmt.printf("Row: %v\n", p / 8)
 	}
+	fmt.println("White Pawn d4:")
+	for p in availableMoves(&board, getPiece(&board, getSquareIndex({d, 3}))) {
+		fmt.printf("Col: %v ", p % 8)
+		fmt.printf("Row: %v\n", p / 8)
+	}
+	fmt.println("Black Pawn d5:")
+	for p in availableMoves(&board, getPiece(&board, getSquareIndex({d, 4}))) {
+		fmt.printf("Col: %v ", p % 8)
+		fmt.printf("Row: %v\n", p / 8)
+	}
+	fmt.println("Black Pawn e7:")
+	for p in availableMoves(&board, getPiece(&board, getSquareIndex({e, 6}))) {
+		fmt.printf("Col: %v ", p % 8)
+		fmt.printf("Row: %v\n", p / 8)
+	}
 }
-// INFO: Setting up variable for rendering
-SCREEN_HEIGHT: i32
-SCREEN_WIDTH: i32
-SQUARE_SIDE_LENGTH: i32
-
-PIECE_COLOR1: rl.Color
-PIECE_COLOR2: rl.Color
-BOARD_COLOR1: rl.Color
-BOARD_COLOR2: rl.Color
-TEXTURE_SIDE_LENGTH :: 270
 // INFO: Creating types for Chess
 Board :: struct {
 	// 0-15 White , 16-31 Black
@@ -210,14 +88,6 @@ PieceType :: enum {
 	Queen,
 }
 
-PieceTypeTexture :: [PieceType]cstring {
-	.King   = "./assets/King_White.png",
-	.Pawn   = "./assets/Pawn_White.png",
-	.Knight = "./assets/Knight_White.png",
-	.Bishop = "./assets/Bishop_White.png",
-	.Rook   = "./assets/Rook_White.png",
-	.Queen  = "./assets/Queen_White.png",
-}
 // INFO: Creating variables and constants for chess
 
 // NOTE: Since we made white the top, we have to reverse which column has what letter assigned to it
@@ -229,6 +99,8 @@ e :: 3
 f :: 2
 g :: 1
 h :: 0
+
+INVALID_INDEX :: 255
 
 newGame :: proc() -> Board {
 	reset_board: Board
@@ -279,7 +151,7 @@ resetPieces :: proc(board: ^Board) {
 // BUG: THIS DOES NOT WORK
 resetSquares :: proc(board: ^Board) {
 	for _, i in board.squares {
-		board.squares[i] = 255
+		board.squares[i] = INVALID_INDEX
 	}
 	board.squares[0] = board.pieces[0].index
 	board.squares[1] = board.pieces[1].index
@@ -315,74 +187,20 @@ resetSquares :: proc(board: ^Board) {
 	board.squares[63] = board.pieces[23].index
 }
 
-drawBoard :: proc(board_color1, board_color2: rl.Color) {
-	for y: i32 = 0; y < 8; y += 1 {
-		for x: i32 = 0; x < 8; x += 1 {
-			if (x % 2 + y % 2) % 2 == 0 {
-				rl.DrawRectangle(
-					x * SQUARE_SIDE_LENGTH,
-					y * SQUARE_SIDE_LENGTH,
-					SQUARE_SIDE_LENGTH,
-					SQUARE_SIDE_LENGTH,
-					board_color1,
-				)
-			} else {
-				rl.DrawRectangle(
-					x * SQUARE_SIDE_LENGTH,
-					y * SQUARE_SIDE_LENGTH,
-					SQUARE_SIDE_LENGTH,
-					SQUARE_SIDE_LENGTH,
-					board_color2,
-				)
-			}
-		}
-	}
-}
-
-flipCamera :: proc(cam: ^rl.Camera2D) {
-	if cam.rotation == 0 {
-		cam.rotation = 180
-	} else {
-		cam.rotation = 0
-	}
-}
-
-clickedSquare :: proc(cam: ^rl.Camera2D) -> u8 {
-	m_x := rl.GetMouseX()
-	m_y := rl.GetMouseY()
-	board_size := 8 * SQUARE_SIDE_LENGTH
-	offset_x := (SCREEN_WIDTH - board_size) / 2
-	offset_y := (SCREEN_HEIGHT - board_size) / 2
-	if m_x < offset_x || m_x > board_size + offset_x {
-		return 255
-	}
-	if m_y < offset_y || m_y > board_size + offset_y {
-		return 255
-	}
-	row := (m_y - offset_y) / SQUARE_SIDE_LENGTH
-	col := (m_x - offset_x) / SQUARE_SIDE_LENGTH
-
-	if cam.rotation == 0 {
-		fmt.printf("Clicked Square is %v\n", 8 * row + col)
-	} else if cam.rotation == 180 {
-		fmt.printf("Clicked Square is %v\n", 64 - (8 * row + col) - 1)
-	}
-	return 0
-}
 
 // NOTE: As is chess standard, toSquare is [col,row] (ie. [d,4])
 // The piece passed is just the index of the piece in question
 movePiece :: proc(board: ^Board, piece: u8, toSquare: u8) {
 
-	if board.squares[toSquare] == 255 {
-		board.squares[board.pieces[piece].row * 8 + board.pieces[piece].col] = 255
+	if board.squares[toSquare] == INVALID_INDEX {
+		board.squares[board.pieces[piece].row * 8 + board.pieces[piece].col] = INVALID_INDEX
 		board.pieces[piece].col = toSquare % 8
 		board.pieces[piece].row = toSquare / 8
 		board.squares[toSquare] = board.pieces[piece].index
 		return
 	} else {
 		killPiece(board, board.pieces[board.squares[toSquare]].index)
-		board.squares[board.pieces[piece].row * 8 + board.pieces[piece].col] = 255
+		board.squares[board.pieces[piece].row * 8 + board.pieces[piece].col] = INVALID_INDEX
 		board.pieces[piece].col = toSquare % 8
 		board.pieces[piece].row = toSquare / 8
 		board.squares[toSquare] = board.pieces[piece].index
@@ -402,16 +220,20 @@ getSquareIndex :: proc(square: [2]u8) -> u8 {
 
 getPiece :: proc(board: ^Board, square: u8) -> u8 {
 	if square > 63 {
-		return 255
+		return INVALID_INDEX
 	}
-	if board.squares[square] == 255 {
-		return 254
+	if board.squares[square] == INVALID_INDEX {
+		return INVALID_INDEX
 	}
 	return board.pieces[board.squares[square]].index
 }
 
 availableMoves :: proc(board: ^Board, piece: u8) -> []u8 {
+	// Setup return value
 	validSquares: [dynamic]u8
+	defer delete(validSquares)
+
+	// Logic
 	if piece > 32 {return {}}
 	p := board.pieces[piece]
 	switch p.piece_type {
@@ -449,10 +271,22 @@ availableMoves :: proc(board: ^Board, piece: u8) -> []u8 {
 			append(&validSquares, getSquareIndex({p.col + 1, p.row + 1}))
 		}
 	case .Pawn:
+		if piece < 16 {
+			if p.row == 1 {
+				append(&validSquares, getSquareIndex({p.col, p.row + 2}))
+			}
+			append(&validSquares, getSquareIndex({p.col, p.row + 1}))
+		} else {
+			if p.row == 6 {
+				append(&validSquares, getSquareIndex({p.col, p.row - 2}))
+			}
+			append(&validSquares, getSquareIndex({p.col, p.row - 1}))
+		}
 	case .Knight:
 	case .Bishop:
 	case .Rook:
 	case .Queen:
 	}
+	// Return a slice of the whole the underlying array
 	return validSquares[:]
 }
