@@ -3,7 +3,7 @@ package chess
 import "core:fmt"
 import rl "vendor:raylib"
 
-// INFO: Setting up variable for rendering
+// NOTE: Setting up variable for rendering
 SCREEN_HEIGHT: i32
 SCREEN_WIDTH: i32
 SQUARE_SIDE_LENGTH: i32
@@ -63,7 +63,6 @@ render :: proc(board: ^Board) {
 			if (p.col < 8 && p.col >= 0) && (p.row < 8 && p.row >= 0) {
 				if i < 16 {
 					if cam.rotation == 180 {
-						// NOTE: THIS WORKS WHILE CAMERA IS FLIPPED, EVERYTHING IS UPPSIDE DOWN IF IT ISN'T
 						rl.DrawTexturePro(
 							textures[p.piece_type],
 							rl.Rectangle{0, 0, 270, 270},
@@ -106,7 +105,6 @@ render :: proc(board: ^Board) {
 					//	f32(SQUARE_SIDE_LENGTH) / 4,
 					//	PIECE_COLOR2,
 					//)
-					// TODO: Need to rewatch the tutorial for how to draw these
 					// https://zylinski.se/posts/gamedev-for-beginners-using-odin-and-raylib-3/
 					if cam.rotation == 180 {
 						rl.DrawTexturePro(

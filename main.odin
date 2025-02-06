@@ -24,12 +24,9 @@ main :: proc() {
 
 	// NOTE: Chess setup stuff
 	board := newGame()
-	movePiece(&board, getPiece(&board, getSquareIndex({d, 1})), getSquareIndex({d, 3}))
-	movePiece(&board, getPiece(&board, getSquareIndex({d, 6})), getSquareIndex({d, 4}))
-	movePiece(&board, getPiece(&board, getSquareIndex({e, 0})), getSquareIndex({e, 3}))
 	// NOTE: Start of rendering
-	fmt.printf("\tH\tG\tF\tE\tD\tC\tB\tA\n")
 	render(&board)
+	fmt.printf("\tH\tG\tF\tE\tD\tC\tB\tA\n")
 	for p, i in board.squares {
 		if i % 8 == 0 {fmt.printf("\n")}
 		if p != 255 {
@@ -41,28 +38,12 @@ main :: proc() {
 
 	}
 	fmt.println()
-	fmt.println("White KING:")
-	for p in availableMoves(&board, getPiece(&board, getSquareIndex({e, 3}))) {
-		fmt.printf("Col: %v ", p % 8)
-		fmt.printf("Row: %v\n", p / 8)
-	}
-	fmt.println("White Pawn d4:")
-	for p in availableMoves(&board, getPiece(&board, getSquareIndex({d, 3}))) {
-		fmt.printf("Col: %v ", p % 8)
-		fmt.printf("Row: %v\n", p / 8)
-	}
-	fmt.println("Black Pawn d5:")
-	for p in availableMoves(&board, getPiece(&board, getSquareIndex({d, 4}))) {
-		fmt.printf("Col: %v ", p % 8)
-		fmt.printf("Row: %v\n", p / 8)
-	}
-	fmt.println("Black Pawn e7:")
-	for p in availableMoves(&board, getPiece(&board, getSquareIndex({e, 6}))) {
+	fmt.println("Queen d8:")
+	for p in availableMoves(&board, getPiece(&board, getSquareIndex({d, 7}))) {
 		fmt.printf("Col: %v ", p % 8)
 		fmt.printf("Row: %v\n", p / 8)
 	}
 }
-// INFO: Creating types for Chess
 Board :: struct {
 	// 0-15 White , 16-31 Black
 	// rook,knigt,bishop,queen,king,bishop,knight,rook
@@ -88,9 +69,7 @@ PieceType :: enum {
 	Queen,
 }
 
-// INFO: Creating variables and constants for chess
-
-// NOTE: Since we made white the top, we have to reverse which column has what letter assigned to it
+// INFO: Since we made white the top, we have to reverse which column has what letter assigned to it
 a :: 7
 b :: 6
 c :: 5
@@ -103,6 +82,7 @@ h :: 0
 INVALID_INDEX :: 255
 
 newGame :: proc() -> Board {
+	//NOTE: newGame()
 	reset_board: Board
 	resetPieces(&reset_board)
 	resetSquares(&reset_board)
@@ -111,6 +91,7 @@ newGame :: proc() -> Board {
 
 
 resetPieces :: proc(board: ^Board) {
+	//NOTE: resetPieces()
 	board.pieces = {
 		Piece{piece_type = PieceType.Rook, col = 0, row = 0, index = 0, alive = true},
 		Piece{PieceType.Knight, 1, 0, 1, true},
@@ -148,8 +129,8 @@ resetPieces :: proc(board: ^Board) {
 
 }
 
-// BUG: THIS DOES NOT WORK
 resetSquares :: proc(board: ^Board) {
+	//NOTE: resetSquares()
 	for _, i in board.squares {
 		board.squares[i] = INVALID_INDEX
 	}
@@ -188,9 +169,10 @@ resetSquares :: proc(board: ^Board) {
 }
 
 
-// NOTE: As is chess standard, toSquare is [col,row] (ie. [d,4])
+// As is chess standard, toSquare is [col,row] (ie. [d,4])
 // The piece passed is just the index of the piece in question
 movePiece :: proc(board: ^Board, piece: u8, toSquare: u8) {
+	//NOTE: movePiece()
 
 	if board.squares[toSquare] == INVALID_INDEX {
 		board.squares[board.pieces[piece].row * 8 + board.pieces[piece].col] = INVALID_INDEX
@@ -210,15 +192,18 @@ movePiece :: proc(board: ^Board, piece: u8, toSquare: u8) {
 }
 
 killPiece :: proc(board: ^Board, piece: u8) {
+	//NOTE: killPiece()
 	board.pieces[piece].alive = false
 }
 
 getSquareIndex :: proc(square: [2]u8) -> u8 {
+	//NOTE: getSquareIndex()
 
 	return (square.y * 8) + square.x
 }
 
 getPiece :: proc(board: ^Board, square: u8) -> u8 {
+	//NOTE: getPiece()
 	if square > 63 {
 		return INVALID_INDEX
 	}
@@ -228,7 +213,9 @@ getPiece :: proc(board: ^Board, square: u8) -> u8 {
 	return board.pieces[board.squares[square]].index
 }
 
+// Generates a slice of moves that a piece can make
 availableMoves :: proc(board: ^Board, piece: u8) -> []u8 {
+	//NOTE: availableMoves()
 	// Setup return value
 	validSquares: [dynamic]u8
 	defer delete(validSquares)
@@ -276,6 +263,12 @@ availableMoves :: proc(board: ^Board, piece: u8) -> []u8 {
 				append(&validSquares, getSquareIndex({p.col, p.row + 2}))
 			}
 			append(&validSquares, getSquareIndex({p.col, p.row + 1}))
+			if p.col < 7 {
+				append(&validSquares, getSquareIndex({p.col + 1, p.row + 1}))
+			}
+			if p.col > 0 {
+				append(&validSquares, getSquareIndex({p.col - 1, p.row + 1}))
+			}
 		} else {
 			if p.row == 6 {
 				append(&validSquares, getSquareIndex({p.col, p.row - 2}))
@@ -283,10 +276,123 @@ availableMoves :: proc(board: ^Board, piece: u8) -> []u8 {
 			append(&validSquares, getSquareIndex({p.col, p.row - 1}))
 		}
 	case .Knight:
+		// 2 up 1 left
+		if p.col + 1 <= 7 && p.row + 2 <= 7 {
+			append(&validSquares, getSquareIndex({p.col + 1, p.row + 2}))
+		}
+		// 1 up 2 left
+		if p.col + 2 <= 7 && p.row + 1 <= 7 {
+			append(&validSquares, getSquareIndex({p.col + 2, p.row + 1}))
+		}
+		// 2 up 1 right
+		if p.col >= 1 && p.row + 2 <= 7 {
+			append(&validSquares, getSquareIndex({p.col - 1, p.row + 2}))
+		}
+		// 1 up 2 right
+		if p.col >= 2 && p.row + 1 <= 7 {
+			append(&validSquares, getSquareIndex({p.col - 2, p.row + 1}))
+		}
+		// 2 down 1 left
+		if p.col + 1 >= 7 && p.row >= 2 {
+			append(&validSquares, getSquareIndex({p.col + 1, p.row - 2}))
+		}
+		// 1 down 2 left
+		if p.col + 2 <= 7 && p.row >= 1 {
+			append(&validSquares, getSquareIndex({p.col + 2, p.row - 1}))
+		}
+		// 2 down 1 right
+		if p.col >= 1 && p.row >= 2 {
+			append(&validSquares, getSquareIndex({p.col - 1, p.row - 2}))
+		}
+		// 1 down 2 right
+		if p.col >= 2 && p.row >= 2 {
+			append(&validSquares, getSquareIndex({p.col - 2, p.row - 1}))
+		}
 	case .Bishop:
+		dist_bot := 7 - p.row
+		dist_top := p.row
+		dist_left := p.col
+		dist_right := 7 - p.col
+		fmt.printf("db: %v\tdt: %v\tdl: %v\tdr: %v\n", dist_bot, dist_top, dist_left, dist_right)
+		// Up and left
+		for i: u8 = 1; i <= min(dist_top, dist_left); i += 1 {
+			append(&validSquares, getSquareIndex({p.col - i, p.row - i}))
+		}
+		// up and right
+		for i: u8 = 1; i <= min(dist_top, dist_right); i += 1 {
+			append(&validSquares, getSquareIndex({p.col + i, p.row - i}))
+		}
+		//down and left
+		for i: u8 = 1; i <= min(dist_bot, dist_left); i += 1 {
+			append(&validSquares, getSquareIndex({p.col - i, p.row + i}))
+		}
+		// down and right
+		for i: u8 = 1; i <= min(dist_bot, dist_right); i += 1 {
+			append(&validSquares, getSquareIndex({p.col + i, p.row + i}))
+		}
 	case .Rook:
+		dist_bot := 7 - p.row
+		dist_top := p.row
+		dist_left := p.col
+		dist_right := 7 - p.col
+		fmt.printf("db: %v\tdt: %v\tdl: %v\tdr: %v\n", dist_bot, dist_top, dist_left, dist_right)
+		// Up
+		for i: u8 = 1; i <= dist_top; i += 1 {
+			append(&validSquares, getSquareIndex({p.col, p.row - i}))
+		}
+		// Down
+		for i: u8 = 1; i <= dist_bot; i += 1 {
+			append(&validSquares, getSquareIndex({p.col, p.row + i}))
+		}
+		//left
+		for i: u8 = 1; i <= dist_left; i += 1 {
+			append(&validSquares, getSquareIndex({p.col - i, p.row}))
+		}
+		// right
+		for i: u8 = 1; i <= dist_right; i += 1 {
+			append(&validSquares, getSquareIndex({p.col + i, p.row}))
+		}
 	case .Queen:
+		dist_bot := 7 - p.row
+		dist_top := p.row
+		dist_left := p.col
+		dist_right := 7 - p.col
+		fmt.printf("db: %v\tdt: %v\tdl: %v\tdr: %v\n", dist_bot, dist_top, dist_left, dist_right)
+		// Up
+		for i: u8 = 1; i <= dist_top; i += 1 {
+			append(&validSquares, getSquareIndex({p.col, p.row - i}))
+		}
+		// Down
+		for i: u8 = 1; i <= dist_bot; i += 1 {
+			append(&validSquares, getSquareIndex({p.col, p.row + i}))
+		}
+		// Left
+		for i: u8 = 1; i <= dist_left; i += 1 {
+			append(&validSquares, getSquareIndex({p.col - i, p.row}))
+		}
+		// Right
+		for i: u8 = 1; i <= dist_right; i += 1 {
+			append(&validSquares, getSquareIndex({p.col + i, p.row}))
+		}
+		for i: u8 = 1; i <= min(dist_top, dist_left); i += 1 {
+			append(&validSquares, getSquareIndex({p.col - i, p.row - i}))
+		}
+		// up and right
+		for i: u8 = 1; i <= min(dist_top, dist_right); i += 1 {
+			append(&validSquares, getSquareIndex({p.col + i, p.row - i}))
+		}
+		//down and left
+		for i: u8 = 1; i <= min(dist_bot, dist_left); i += 1 {
+			append(&validSquares, getSquareIndex({p.col - i, p.row + i}))
+		}
+		// down and right
+		for i: u8 = 1; i <= min(dist_bot, dist_right); i += 1 {
+			append(&validSquares, getSquareIndex({p.col + i, p.row + i}))
+		}
 	}
 	// Return a slice of the whole the underlying array
 	return validSquares[:]
+}
+moveLegality :: proc(board: ^Board, piece: u8, square: u8) {
+	// NOTE: moveLegality()
 }
