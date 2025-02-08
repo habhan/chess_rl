@@ -39,7 +39,7 @@ main :: proc() {
 	}
 	fmt.println()
 	fmt.println("Queen d8:")
-	for p in availableMoves(&board, getPiece(&board, getSquareIndex({d, 7}))) {
+	for p in availableMoves(&board, getPiece(&board, getSquareIndex({a, 7}))) {
 		fmt.printf("Col: %v ", p % 8)
 		fmt.printf("Row: %v\n", p / 8)
 	}
@@ -213,7 +213,7 @@ getPiece :: proc(board: ^Board, square: u8) -> u8 {
 	return board.pieces[board.squares[square]].index
 }
 
-// Generates a slice of moves that a piece can make
+// Generates a slice containing all the last squares a piece can see
 availableMoves :: proc(board: ^Board, piece: u8) -> []u8 {
 	//NOTE: availableMoves()
 	// Setup return value
@@ -259,21 +259,31 @@ availableMoves :: proc(board: ^Board, piece: u8) -> []u8 {
 		}
 	case .Pawn:
 		if piece < 16 {
-			if p.row == 1 {
+			if p.row == 1 && moveToOpenSquare(board, getSquareIndex({p.col, p.row + 2})) {
 				append(&validSquares, getSquareIndex({p.col, p.row + 2}))
 			}
-			append(&validSquares, getSquareIndex({p.col, p.row + 1}))
-			if p.col < 7 {
+			if moveToOpenSquare(board, getSquareIndex({p.col, p.row + 1})) {
+				append(&validSquares, getSquareIndex({p.col, p.row + 1}))
+			}
+			if p.col < 7 && !moveToOpenSquare(board, getSquareIndex({p.col + 1, p.row + 1})) {
 				append(&validSquares, getSquareIndex({p.col + 1, p.row + 1}))
 			}
-			if p.col > 0 {
+			if p.col > 0 && !moveToOpenSquare(board, getSquareIndex({p.col - 1, p.row + 1})) {
 				append(&validSquares, getSquareIndex({p.col - 1, p.row + 1}))
 			}
 		} else {
-			if p.row == 6 {
+			if p.row == 6 && moveToOpenSquare(board, getSquareIndex({p.col, p.row - 2})) {
 				append(&validSquares, getSquareIndex({p.col, p.row - 2}))
 			}
-			append(&validSquares, getSquareIndex({p.col, p.row - 1}))
+			if moveToOpenSquare(board, getSquareIndex({p.col, p.row - 1})) {
+				append(&validSquares, getSquareIndex({p.col, p.row - 1}))
+			}
+			if p.col < 7 && !moveToOpenSquare(board, getSquareIndex({p.col + 1, p.row - 1})) {
+				append(&validSquares, getSquareIndex({p.col + 1, p.row - 1}))
+			}
+			if p.col > 0 && !moveToOpenSquare(board, getSquareIndex({p.col - 1, p.row - 1})) {
+				append(&validSquares, getSquareIndex({p.col - 1, p.row - 1}))
+			}
 		}
 	case .Knight:
 		// 2 up 1 left
@@ -317,18 +327,30 @@ availableMoves :: proc(board: ^Board, piece: u8) -> []u8 {
 		// Up and left
 		for i: u8 = 1; i <= min(dist_top, dist_left); i += 1 {
 			append(&validSquares, getSquareIndex({p.col - i, p.row - i}))
+			if !moveToOpenSquare(board, getSquareIndex({p.col - i, p.row - i})) {
+				break
+			}
 		}
 		// up and right
 		for i: u8 = 1; i <= min(dist_top, dist_right); i += 1 {
 			append(&validSquares, getSquareIndex({p.col + i, p.row - i}))
+			if !moveToOpenSquare(board, getSquareIndex({p.col + i, p.row - i})) {
+				break
+			}
 		}
 		//down and left
 		for i: u8 = 1; i <= min(dist_bot, dist_left); i += 1 {
 			append(&validSquares, getSquareIndex({p.col - i, p.row + i}))
+			if !moveToOpenSquare(board, getSquareIndex({p.col - i, p.row + i})) {
+				break
+			}
 		}
 		// down and right
 		for i: u8 = 1; i <= min(dist_bot, dist_right); i += 1 {
 			append(&validSquares, getSquareIndex({p.col + i, p.row + i}))
+			if !moveToOpenSquare(board, getSquareIndex({p.col + i, p.row + i})) {
+				break
+			}
 		}
 	case .Rook:
 		dist_bot := 7 - p.row
@@ -337,20 +359,35 @@ availableMoves :: proc(board: ^Board, piece: u8) -> []u8 {
 		dist_right := 7 - p.col
 		fmt.printf("db: %v\tdt: %v\tdl: %v\tdr: %v\n", dist_bot, dist_top, dist_left, dist_right)
 		// Up
-		for i: u8 = 1; i <= dist_top; i += 1 {
+		for i: u8 = 1; i < dist_top; i += 1 {
 			append(&validSquares, getSquareIndex({p.col, p.row - i}))
+			if !moveToOpenSquare(board, getSquareIndex({p.col, p.row - i})) {
+				break
+			}
 		}
 		// Down
-		for i: u8 = 1; i <= dist_bot; i += 1 {
+		for i: u8 = 1; i < dist_bot; i += 1 {
 			append(&validSquares, getSquareIndex({p.col, p.row + i}))
+			if !moveToOpenSquare(board, getSquareIndex({p.col, p.row + i})) {
+				break
+			}
+
 		}
 		//left
-		for i: u8 = 1; i <= dist_left; i += 1 {
+		for i: u8 = 1; i < dist_left; i += 1 {
 			append(&validSquares, getSquareIndex({p.col - i, p.row}))
+			if !moveToOpenSquare(board, getSquareIndex({p.col - i, p.row})) {
+				break
+			}
+
 		}
 		// right
-		for i: u8 = 1; i <= dist_right; i += 1 {
+		for i: u8 = 1; i < dist_right; i += 1 {
 			append(&validSquares, getSquareIndex({p.col + i, p.row}))
+			if !moveToOpenSquare(board, getSquareIndex({p.col + i, p.row})) {
+				break
+			}
+
 		}
 	case .Queen:
 		dist_bot := 7 - p.row
@@ -359,40 +396,90 @@ availableMoves :: proc(board: ^Board, piece: u8) -> []u8 {
 		dist_right := 7 - p.col
 		fmt.printf("db: %v\tdt: %v\tdl: %v\tdr: %v\n", dist_bot, dist_top, dist_left, dist_right)
 		// Up
-		for i: u8 = 1; i <= dist_top; i += 1 {
+		for i: u8 = 1; i < dist_top; i += 1 {
 			append(&validSquares, getSquareIndex({p.col, p.row - i}))
+			if !moveToOpenSquare(board, getSquareIndex({p.col, p.row - i})) {
+				break
+			}
 		}
 		// Down
-		for i: u8 = 1; i <= dist_bot; i += 1 {
+		for i: u8 = 1; i < dist_bot; i += 1 {
 			append(&validSquares, getSquareIndex({p.col, p.row + i}))
+			if !moveToOpenSquare(board, getSquareIndex({p.col, p.row + i})) {
+				break
+			}
+
 		}
-		// Left
-		for i: u8 = 1; i <= dist_left; i += 1 {
+		//left
+		for i: u8 = 1; i < dist_left; i += 1 {
 			append(&validSquares, getSquareIndex({p.col - i, p.row}))
+			if !moveToOpenSquare(board, getSquareIndex({p.col - i, p.row})) {
+				break
+			}
+
 		}
-		// Right
-		for i: u8 = 1; i <= dist_right; i += 1 {
+		// right
+		for i: u8 = 1; i < dist_right; i += 1 {
 			append(&validSquares, getSquareIndex({p.col + i, p.row}))
+			if !moveToOpenSquare(board, getSquareIndex({p.col + i, p.row})) {
+				break
+			}
 		}
-		for i: u8 = 1; i <= min(dist_top, dist_left); i += 1 {
+
+		// Up and left
+		for i: u8 = 1; i < min(dist_top, dist_left); i += 1 {
 			append(&validSquares, getSquareIndex({p.col - i, p.row - i}))
+			if !moveToOpenSquare(board, getSquareIndex({p.col - i, p.row - i})) {
+				break
+			}
 		}
+
 		// up and right
-		for i: u8 = 1; i <= min(dist_top, dist_right); i += 1 {
+		for i: u8 = 1; i < min(dist_top, dist_right); i += 1 {
 			append(&validSquares, getSquareIndex({p.col + i, p.row - i}))
+			if !moveToOpenSquare(board, getSquareIndex({p.col + i, p.row - i})) {
+				break
+			}
 		}
 		//down and left
-		for i: u8 = 1; i <= min(dist_bot, dist_left); i += 1 {
+		for i: u8 = 1; i < min(dist_bot, dist_left); i += 1 {
 			append(&validSquares, getSquareIndex({p.col - i, p.row + i}))
+			if !moveToOpenSquare(board, getSquareIndex({p.col - i, p.row + i})) {
+				break
+			}
 		}
 		// down and right
-		for i: u8 = 1; i <= min(dist_bot, dist_right); i += 1 {
+		for i: u8 = 1; i < min(dist_bot, dist_right); i += 1 {
 			append(&validSquares, getSquareIndex({p.col + i, p.row + i}))
+			if !moveToOpenSquare(board, getSquareIndex({p.col + i, p.row + i})) {
+				break
+			}
 		}
 	}
 	// Return a slice of the whole the underlying array
 	return validSquares[:]
 }
-moveLegality :: proc(board: ^Board, piece: u8, square: u8) {
+
+//
+
+// Checks wheter a move is legal (ie, we cannot move into our own pieces
+moveToOpenSquare :: proc(board: ^Board, square: u8) -> bool {
 	// NOTE: moveLegality()
+	fmt.printf(
+		"square: %v\tsquare_content: %v\ttrue: %v\n",
+		square,
+		board.squares[square],
+		board.squares[square] == INVALID_INDEX,
+	)
+	if board.squares[square] == INVALID_INDEX {
+		return true
+	}
+	return false
+}
+
+MoveOption :: enum {
+	Move,
+	Attack,
+	Defend,
+	Illegal,
 }
