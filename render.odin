@@ -22,7 +22,7 @@ PieceTypeTexture :: [PieceType]cstring {
 	.Rook   = "./assets/Rook_White.png",
 	.Queen  = "./assets/Queen_White.png",
 }
-render :: proc(board: ^Board) {
+render :: proc(board: ^Board, moveList: ^[dynamic]u8) {
 
 	// NOTE: RL Setup stuff
 	rl.InitWindow(1280, 1280, "Chess")
@@ -146,7 +146,10 @@ render :: proc(board: ^Board) {
 			}
 		}
 		if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
-			fmt.println(getPiece(board, clickedSquare(&cam)))
+			fmt.println("This piece has the following available:")
+			for move in availableMoves(board, getPiece(board, clickedSquare(&cam)), moveList) {
+				fmt.println(moveClassification(board, move, getPiece(board, clickedSquare(&cam))))
+			}
 		}
 
 		rl.EndMode2D()
@@ -206,7 +209,6 @@ clickedSquare :: proc(cam: ^rl.Camera2D) -> u8 {
 	col := (m_x - offset_x) / SQUARE_SIDE_LENGTH
 
 	if cam.rotation == 0 {
-		fmt.printf("Clicked Square is %v\n", 8 * row + col)
 		return u8(8 * row + col)
 	} else if cam.rotation == 180 {
 		return u8(64 - (8 * row + col) - 1)
