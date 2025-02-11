@@ -93,7 +93,7 @@ newGame :: proc() -> Board {
 
 
 resetPieces :: proc(board: ^Board) {
-	//NOTE: resetPieces()
+	//NOTE: resetPieces(board: ^Board)
 	board.pieces = {
 		Piece{piece_type = PieceType.Rook, col = 0, row = 0, index = 0, alive = true},
 		Piece{PieceType.Knight, 1, 0, 1, true},
@@ -132,7 +132,7 @@ resetPieces :: proc(board: ^Board) {
 }
 
 resetSquares :: proc(board: ^Board) {
-	//NOTE: resetSquares()
+	//NOTE: resetSquares(board: ^Board)
 	for _, i in board.squares {
 		board.squares[i] = INVALID_INDEX
 	}
@@ -174,7 +174,7 @@ resetSquares :: proc(board: ^Board) {
 // As is chess standard, toSquare is [col,row] (ie. [d,4])
 // The piece passed is just the index of the piece in question
 movePiece :: proc(board: ^Board, piece: u8, toSquare: u8) {
-	//NOTE: movePiece()
+	//NOTE: movePiece(board: ^Board, piece: u8, toSquare: u8)
 
 	if board.squares[toSquare] == INVALID_INDEX {
 		board.squares[board.pieces[piece].row * 8 + board.pieces[piece].col] = INVALID_INDEX
@@ -194,18 +194,18 @@ movePiece :: proc(board: ^Board, piece: u8, toSquare: u8) {
 }
 
 killPiece :: proc(board: ^Board, piece: u8) {
-	//NOTE: killPiece()
+	//NOTE: killPiece(board: ^Board, piece: u8)
 	board.pieces[piece].alive = false
 }
 
 getSquareIndex :: proc(square: [2]u8) -> u8 {
-	//NOTE: getSquareIndex()
+	//NOTE: getSquareIndex(square: [2]u8) -> u8
 
 	return (square.y * 8) + square.x
 }
 
 getPiece :: proc(board: ^Board, square: u8) -> u8 {
-	//NOTE: getPiece()
+	//NOTE: getPiece(board: ^Board, square: u8) -> u8
 	if square > 63 {
 		return INVALID_INDEX
 	}
@@ -216,9 +216,12 @@ getPiece :: proc(board: ^Board, square: u8) -> u8 {
 }
 
 // Generates a slice containing all the last squares a piece can see
+// INFO: We are leaking memory if we click more than one square
+// Fixed by delting the passed array since it is only so that we can get the data out without freeing prematurley
 availableMoves :: proc(board: ^Board, piece: u8, moveList: ^[dynamic]u8) -> []u8 {
-	//NOTE: availableMoves()
+	//NOTE: availableMoves(board: ^Board, piece: u8, moveList: ^[dynamic]u8) -> []u8
 	// Setup return value
+	delete_dynamic_array(moveList^)
 	moveList := moveList
 	moveList^ = {}
 
@@ -293,36 +296,36 @@ availableMoves :: proc(board: ^Board, piece: u8, moveList: ^[dynamic]u8) -> []u8
 		}
 	case .Knight:
 		// 2 up 1 left
-		if p.col + 1 <= 7 && p.row + 2 <= 7 {
-			append(moveList, getSquareIndex({p.col + 1, p.row + 2}))
-		}
-		// 1 up 2 left
-		if p.col + 2 <= 7 && p.row + 1 <= 7 {
-			append(moveList, getSquareIndex({p.col + 2, p.row + 1}))
-		}
-		// 2 up 1 right
-		if p.col >= 1 && p.row + 2 <= 7 {
-			append(moveList, getSquareIndex({p.col - 1, p.row + 2}))
-		}
-		// 1 up 2 right
-		if p.col >= 2 && p.row + 1 <= 7 {
-			append(moveList, getSquareIndex({p.col - 2, p.row + 1}))
-		}
-		// 2 down 1 left
-		if p.col + 1 >= 7 && p.row >= 2 {
+		if p.col + 1 <= 7 && p.row >= 2 {
 			append(moveList, getSquareIndex({p.col + 1, p.row - 2}))
 		}
-		// 1 down 2 left
+		// 1 up 2 left
 		if p.col + 2 <= 7 && p.row >= 1 {
 			append(moveList, getSquareIndex({p.col + 2, p.row - 1}))
 		}
-		// 2 down 1 right
+		// 2 up 1 right
 		if p.col >= 1 && p.row >= 2 {
 			append(moveList, getSquareIndex({p.col - 1, p.row - 2}))
 		}
-		// 1 down 2 right
+		// 1 up 2 right
 		if p.col >= 2 && p.row >= 2 {
 			append(moveList, getSquareIndex({p.col - 2, p.row - 1}))
+		}
+		// 2 down 1 left
+		if p.col + 1 <= 7 && p.row + 2 <= 7 {
+			append(moveList, getSquareIndex({p.col + 1, p.row + 2}))
+		}
+		// 1 down 2 left
+		if p.col + 2 <= 7 && p.row + 1 <= 7 {
+			append(moveList, getSquareIndex({p.col + 2, p.row + 1}))
+		}
+		// 2 down 1 right
+		if p.col >= 1 && p.row + 2 <= 7 {
+			append(moveList, getSquareIndex({p.col - 1, p.row + 2}))
+		}
+		// 1 down 2 right
+		if p.col >= 2 && p.row + 1 <= 7 {
+			append(moveList, getSquareIndex({p.col - 2, p.row + 1}))
 		}
 	case .Bishop:
 		dist_bot := 7 - p.row
@@ -467,7 +470,7 @@ availableMoves :: proc(board: ^Board, piece: u8, moveList: ^[dynamic]u8) -> []u8
 
 // Checks wheter a move is legal (ie, we cannot move into our own pieces
 moveToOpenSquare :: proc(board: ^Board, square: u8) -> bool {
-	// NOTE: moveLegality()
+	// NOTE: moveToOpenSquare(board: ^Board, square: u8) -> bool
 	if board.squares[square] == INVALID_INDEX {
 		return true
 	}
@@ -478,10 +481,14 @@ MoveOption :: enum {
 	Move,
 	Attack,
 	Defend,
+	None,
 }
 
 moveClassification :: proc(board: ^Board, square: u8, piece: u8) -> MoveOption {
-	//NOTE: moveClassification()
+	//NOTE: moveClassification(board: ^Board, square: u8, piece: u8) -> MoveOption
+	if piece == INVALID_INDEX {
+		return .None
+	}
 	if board.squares[square] == INVALID_INDEX {
 		return .Move
 	}
@@ -491,12 +498,11 @@ moveClassification :: proc(board: ^Board, square: u8, piece: u8) -> MoveOption {
 		} else {
 			return .Attack
 		}
-	} else {
+	}
 
-		if board.squares[square] >= 16 {
-			return .Defend
-		} else {
-			return .Attack
-		}
+	if board.squares[square] >= 16 {
+		return .Defend
+	} else {
+		return .Attack
 	}
 }

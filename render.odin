@@ -12,6 +12,9 @@ PIECE_COLOR1: rl.Color
 PIECE_COLOR2: rl.Color
 BOARD_COLOR1: rl.Color
 BOARD_COLOR2: rl.Color
+MOVE_COLOR: rl.Color
+ATTACK_COLOR: rl.Color
+DEFEND_COLOR: rl.Color
 TEXTURE_SIDE_LENGTH :: 270
 
 PieceTypeTexture :: [PieceType]cstring {
@@ -23,6 +26,7 @@ PieceTypeTexture :: [PieceType]cstring {
 	.Queen  = "./assets/Queen_White.png",
 }
 render :: proc(board: ^Board, moveList: ^[dynamic]u8) {
+	//NOTE: render(board: ^Board, moveList: ^[dynamic]u8)
 
 	// NOTE: RL Setup stuff
 	rl.InitWindow(1280, 1280, "Chess")
@@ -38,6 +42,10 @@ render :: proc(board: ^Board, moveList: ^[dynamic]u8) {
 	board_color2 := rl.DARKGRAY
 	PIECE_COLOR1 = rl.RED
 	PIECE_COLOR2 = rl.Color{30, 30, 30, 255}
+	MOVE_COLOR = rl.BLACK
+	ATTACK_COLOR = rl.RED
+	DEFEND_COLOR = rl.BLUE
+	moves: []u8
 	textures: [6]rl.Texture
 	for v, i in PieceTypeTexture {
 		textures[i] = rl.LoadTextureFromImage(rl.LoadImage(v))
@@ -53,10 +61,11 @@ render :: proc(board: ^Board, moveList: ^[dynamic]u8) {
 		zoom     = 1.0,
 	}
 	//flipCamera(&cam)
+	clicked: u8 = INVALID_INDEX
 	for !rl.WindowShouldClose() {
+		rl.ClearBackground(rl.BLACK)
 		rl.BeginDrawing()
 		rl.BeginMode2D(cam)
-		rl.ClearBackground(rl.BLACK)
 		drawBoard(board_color1, board_color2, &cam)
 		for _, i in board.pieces {
 			p := board.pieces[i]
@@ -99,13 +108,6 @@ render :: proc(board: ^Board, moveList: ^[dynamic]u8) {
 						)
 					}
 				} else {
-					//rl.DrawCircle(
-					//	i32(p.col) * SQUARE_SIDE_LENGTH + SQUARE_SIDE_LENGTH / 2,
-					//	i32(p.row) * SQUARE_SIDE_LENGTH + SQUARE_SIDE_LENGTH / 2,
-					//	f32(SQUARE_SIDE_LENGTH) / 4,
-					//	PIECE_COLOR2,
-					//)
-					// https://zylinski.se/posts/gamedev-for-beginners-using-odin-and-raylib-3/
 					if cam.rotation == 180 {
 						rl.DrawTexturePro(
 							textures[p.piece_type],
@@ -146,10 +148,10 @@ render :: proc(board: ^Board, moveList: ^[dynamic]u8) {
 			}
 		}
 		if rl.IsMouseButtonPressed(rl.MouseButton.LEFT) {
-			fmt.println("This piece has the following available:")
-			for move in availableMoves(board, getPiece(board, clickedSquare(&cam)), moveList) {
-				fmt.println(moveClassification(board, move, getPiece(board, clickedSquare(&cam))))
-			}
+			clicked = clickedSquare(&cam)
+		}
+		for move in availableMoves(board, getPiece(board, clicked), moveList) {
+			drawMove(moveClassification(board, move, getPiece(board, clicked)), move)
 		}
 
 		rl.EndMode2D()
@@ -157,6 +159,7 @@ render :: proc(board: ^Board, moveList: ^[dynamic]u8) {
 	}
 }
 drawBoard :: proc(board_color1, board_color2: rl.Color, cam: ^rl.Camera2D) {
+	//NOTE: drawBoard((board_color1, board_color2: rl.Color, cam: ^rl.Camera2D)
 	SCREEN_WIDTH = rl.GetScreenWidth()
 	SCREEN_HEIGHT = rl.GetScreenHeight()
 
@@ -187,6 +190,7 @@ drawBoard :: proc(board_color1, board_color2: rl.Color, cam: ^rl.Camera2D) {
 }
 
 flipCamera :: proc(cam: ^rl.Camera2D) {
+	//NOTE: flipCamera(cam: ^rl.Camera2D)
 	if cam.rotation == 0 {
 		cam.rotation = 180
 	} else {
@@ -194,6 +198,7 @@ flipCamera :: proc(cam: ^rl.Camera2D) {
 	}
 }
 clickedSquare :: proc(cam: ^rl.Camera2D) -> u8 {
+	//NOTE: clickedSquare(cam: ^rl.Camera2D) -> u8
 	m_x := rl.GetMouseX()
 	m_y := rl.GetMouseY()
 	board_size := 8 * SQUARE_SIDE_LENGTH
@@ -213,5 +218,40 @@ clickedSquare :: proc(cam: ^rl.Camera2D) -> u8 {
 	} else if cam.rotation == 180 {
 		return u8(64 - (8 * row + col) - 1)
 	}
-	return 255
+	return INVALID_INDEX
+}
+
+drawMove :: proc(move: MoveOption, square: u8) {
+	//NOTE: drawMove(move: MoveOption, square: u8)
+	col := square % 8
+	row := square / 8
+	switch move {
+	case .Move:
+		rl.DrawCircle(
+			i32(col) * i32(SQUARE_SIDE_LENGTH) + i32(SQUARE_SIDE_LENGTH / 2),
+			i32(row) * i32(SQUARE_SIDE_LENGTH) + i32(SQUARE_SIDE_LENGTH / 2),
+			f32(SQUARE_SIDE_LENGTH) / 10,
+			MOVE_COLOR,
+		)
+	case .Attack:
+		rl.DrawRectangleLines(
+			i32(col) * i32(SQUARE_SIDE_LENGTH) + i32(SQUARE_SIDE_LENGTH / 2),
+			i32(row) * i32(SQUARE_SIDE_LENGTH) + i32(SQUARE_SIDE_LENGTH / 2),
+			SQUARE_SIDE_LENGTH,
+			SQUARE_SIDE_LENGTH,
+			ATTACK_COLOR,
+		)
+	case .Defend:
+		rl.DrawRectangleLinesEx(
+			rl.Rectangle {
+				f32(col) * f32(SQUARE_SIDE_LENGTH),
+				f32(row) * f32(SQUARE_SIDE_LENGTH),
+				f32(SQUARE_SIDE_LENGTH),
+				f32(SQUARE_SIDE_LENGTH),
+			},
+			f32(SQUARE_SIDE_LENGTH) / 10,
+			DEFEND_COLOR,
+		)
+	case .None:
+	}
 }
