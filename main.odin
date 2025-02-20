@@ -45,6 +45,8 @@ main :: proc() {
 
 	}
 	fmt.println()
+	c := getPgnContent("./test/test_game.pgn")
+	stringMoves(c)
 }
 Board :: struct {
 	// 0-15 White , 16-31 Black
@@ -69,6 +71,15 @@ PieceType :: enum {
 	Bishop,
 	Rook,
 	Queen,
+}
+
+//TODO: Setup some way to parse and create Games
+Game :: []Move
+
+Move :: struct {
+	piece:    u8,
+	from, to: u8,
+	capture:  u8,
 }
 
 // INFO: Since we made white the top, we have to reverse which column has what letter assigned to it
